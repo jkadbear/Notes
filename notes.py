@@ -93,10 +93,10 @@ def file_list(cfg_filepath):
 
 def cmp_similar(cfg_filepath, str_pattern):
     '''
-    search pattern from all filenames
+    search pattern from all filenames and then open the file,
     print candidates if more than one filename is matched
     '''
-    pattern = re.compile(str_pattern)
+    pattern = re.compile(str_pattern, re.IGNORECASE)
     if(os.path.exists(cfg_filepath)):
         with open(cfg_filepath, "r") as f:
             candi = []
@@ -129,13 +129,13 @@ if __name__ == "__main__":
     cfg_filepath = os.path.expanduser('~') + '/'+ ".notes_config"
     if len(args) == 2:
         directory = args[1]
-        directory = get_absolute_path(directory)
+        abs_directory = get_absolute_path(directory)
         # Add
         if args[0] == '-a' or args[0] == '--add':
-            notes_add_dir(cfg_filepath, directory) 
+            notes_add_dir(cfg_filepath, abs_directory) 
         # Delete
         elif args[0] == '-d' or args[0] == '--delete':
-            notes_remove_dir(cfg_filepath, directory, False)
+            notes_remove_dir(cfg_filepath, abs_directory, False)
         else:
             print('Unknown option: ' + args[0])
             print_usage()
