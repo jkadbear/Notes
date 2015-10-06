@@ -155,6 +155,20 @@ if __name__ == "__main__":
                 for key in config.keys():
                     notes_remove_dir(cfg_filepath, key, True)
                     notes_add_dir(cfg_filepath, key)
+        elif args[0] == '-p' or args[0] == '--push':
+            # Update remote repo
+            with open(cfg_filepath, 'r') as f:
+                config = json.load(f)
+                for key in config.keys():
+                    os.chdir(key)
+                    subprocess.call('git push origin master', shell = True)
+        elif args[0] == '-c' or args[0] == '--commit':
+            # Update remote repo
+            with open(cfg_filepath, 'r') as f:
+                config = json.load(f)
+                for key in config.keys():
+                    os.chdir(key)
+                    subprocess.call('git commit -a', shell = True)
         elif args[0] == '--list' or args[0] == '-l':
             # List all added files
             file_list(cfg_filepath)
