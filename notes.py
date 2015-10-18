@@ -1,20 +1,34 @@
 #!/usr/bin/env python
+"""NOTES
+Usage:
+  notes.py (-a | --add) <ADD_DIRS>...
+  notes.py (-d | --delete) <DEL_DIRS>...
+  notes.py <search-key>
+  notes.py [-l | --list] [--show]
+  notes.py -u | --update
+  notes.py -p | --push
+  notes.py -c | --commit
+  notes.py -h | --help
+  notes.py --version
+
+Options:
+  -h --help     Show this screen
+  -a --add      Add directories to be traced
+  -d --delete   Add directories to be traced
+  -u --update   Update current files
+  -p --push     Push current files being traced to remote repo
+  -c --commit   Git commit current files being traced
+  -l --list     Show all files being traced
+  --show        Show all directories being traced
+  --version     Show version
+"""
 import sys, re, os 
 import subprocess
 import json
+from docopt import docopt
 
-def print_usage():
-    '''
-    print help messages
-    '''
-    print('usage: notes [--add | -a <path-to-directory>]')
-    print('             [--delete | -d <path-to-directory>]')
-    print('             [--show] [--update | -u]')
-    print('             [--help | -h] [--list | -l]')
-    # TODO
-    # print('             [--search | -s]')
-    print("             [search-key]")
-
+# TODO
+# print('             [--search | -s]')
 
 def get_absolute_path(directory):
     '''
@@ -38,7 +52,7 @@ def search_file(L, dir):
 
 def notes_add_dir(cfg_filepath, add_dir):
     '''
-    add a directory to Notes
+    add directories to Notes
     '''
     if(os.path.exists(cfg_filepath)):
         with open(cfg_filepath, "r") as f:
@@ -61,7 +75,7 @@ def notes_add_dir(cfg_filepath, add_dir):
 
 def notes_remove_dir(cfg_filepath, remove_dir, is_update):
     '''
-    delete a directory from Notes
+    delete directories from Notes
     '''
     if(os.path.exists(cfg_filepath)):
         with open(cfg_filepath, "r") as f:
@@ -80,43 +94,54 @@ def notes_remove_dir(cfg_filepath, remove_dir, is_update):
         print("Not Configured!")
 
 
-def file_list(cfg_filepath):
+def files_iteration(cfg_filepath, mode, str_pattern):
     '''
-    list all files tracked by Notes
+    itertate files being traced
+    operations: search, update, list, show, push, commit
     '''
-    with open(cfg_filepath, "r") as f:
-        config = json.load(f)
-        for key in config.keys():
-            for file in config[key]:
-                print(file)
-
-
-def cmp_similar(cfg_filepath, str_pattern):
-    '''
-    search pattern from all filenames and then open the file,
-    print candidates if more than one filename is matched
-    '''
-    pattern = re.compile(str_pattern, re.IGNORECASE)
     if(os.path.exists(cfg_filepath)):
         with open(cfg_filepath, "r") as f:
-            candi = []
-            config = json.load(f) 
-            for dir in config.keys():
-                for file in config[dir]:
-                    if pattern.search(file.split('.')[-2]):
-                        if not os.path.exists(dir + file):
-                            print('File corruption')
-                            print('Please check ' + dir)
-                            exit()
-                        else:
-                            candi.append(dir + '/' + file)
-            if len(candi) == 1:
-                subprocess.call('vim ' + candi[0], shell = True)
-            elif len(candi) > 1:
-                print("There are some files you may want to access:")
-                for iterm in candi:
-                    print(iterm)
-            else: print('"' + str_pattern + '"' + " not find!")
+            config = json.load(f)
+            pattern = re.compile(str_pattern, re.IGNORECASE)
+            candis = []
+            for key in config.keys():
+                if(mode == 'search'):
+                    for file in config[key]:
+                        if pattern.search(file.split('.')[-2]):
+                            if not os.path.exists(key + file):
+                                print('File corruption')
+                                print('Please check ' + key)
+                                exit()
+                            else:
+                                candis.append(key + file)
+                if(mode == 'list'):
+                # list all files tracked by Notes
+                    for file in config[key]:
+                        print(file)
+                elif(mode == 'update'):
+                    # Update added directories 
+                    notes_remove_dir(cfg_filepath, key, True)
+                    notes_add_dir(cfg_filepath, key)
+                elif(mode == 'show'):
+                # Show added directories
+                    print(key)
+                elif(mode == 'push'):
+                    # Update remote repo
+                    os.chdir(key)
+                    subprocess.call('git push origin master', shell = True)
+                elif(mode == 'commit'):
+                    # Update remote repo
+                    os.chdir(key)
+                    subprocess.call('git commit -a', shell = True)
+
+            if(mode == 'search'):
+                if len(candis) == 1:
+                    subprocess.call('vim ' + candis[0], shell = True)
+                elif len(candis) > 1:
+                    print("There are some files you may want to access:")
+                    for candi in candis:
+                        print(candi)
+                else: print('"' + str_pattern + '"' + " not find!")
     else:
         print("Not Configured!")
 
@@ -125,58 +150,25 @@ if __name__ == "__main__":
     # TODO
     # alias function
     # function of ignore
-    args = sys.argv[1:]
+
+    args = docopt(__doc__, version='1.0')
     cfg_filepath = os.path.expanduser('~') + '/'+ ".notes_config"
-    if len(args) == 2:
-        directory = args[1]
-        abs_directory = get_absolute_path(directory)
-        # Add
-        if args[0] == '-a' or args[0] == '--add':
-            notes_add_dir(cfg_filepath, abs_directory) 
-        # Delete
-        elif args[0] == '-d' or args[0] == '--delete':
-            notes_remove_dir(cfg_filepath, abs_directory, False)
-        else:
-            print('Unknown option: ' + args[0])
-            print_usage()
-    elif len(args) == 1:
-        if args[0][0] != '-':
-            cmp_similar(cfg_filepath, args[0])
-        elif args[0] == '--show':
-            # Show added directories
-            with open(cfg_filepath, 'r') as f:
-                config = json.load(f)
-                for key in config.keys():
-                    print(key)
-        elif args[0] == '--update' or args[0] == '-u':
-            # Update added directories 
-            with open(cfg_filepath, 'r') as f:
-                config = json.load(f)
-                for key in config.keys():
-                    notes_remove_dir(cfg_filepath, key, True)
-                    notes_add_dir(cfg_filepath, key)
-        elif args[0] == '-p' or args[0] == '--push':
-            # Update remote repo
-            with open(cfg_filepath, 'r') as f:
-                config = json.load(f)
-                for key in config.keys():
-                    os.chdir(key)
-                    subprocess.call('git push origin master', shell = True)
-        elif args[0] == '-c' or args[0] == '--commit':
-            # Update remote repo
-            with open(cfg_filepath, 'r') as f:
-                config = json.load(f)
-                for key in config.keys():
-                    os.chdir(key)
-                    subprocess.call('git commit -a', shell = True)
-        elif args[0] == '--list' or args[0] == '-l':
-            # List all added files
-            file_list(cfg_filepath)
-        elif args[0] == '--help' or args[0] == '-h':
-            # Print help messages
-            print_usage()
-        else: 
-            print('Unknown option: ' + args[0])
-            print_usage()
-    else: 
-        print_usage()
+
+    if(args['<search-key>']):
+        files_iteration(cfg_filepath, 'search', args['<search-key>'])
+    elif(args['--update']):
+        files_iteration(cfg_filepath, 'update', "")
+    elif(args['--push']):
+        files_iteration(cfg_filepath, 'push', "")
+    elif(args['--commit']):
+        files_iteration(cfg_filepath, 'commit', "")
+    elif(args['--add']):
+        for dir in args['ADD_DIRS']:
+            notes_add_dir(cfg_filepath, get_absolute_path(dir))
+    elif(args['--delete']):
+        for dir in args['DEL_DIRS']:
+            notes_add_dir(cfg_filepath, get_absolute_path(dir)) 
+    elif(args['--list']):
+        files_iteration(cfg_filepath, 'list', "")
+    elif(args['--show']):
+        files_iteration(cfg_filepath, 'show', "")
