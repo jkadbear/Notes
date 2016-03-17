@@ -150,7 +150,6 @@ if __name__ == "__main__":
     # TODO
     # alias function
     # function of ignore
-
     args = docopt(__doc__, version='1.0')
     cfg_filepath = os.path.expanduser('~') + '/'+ ".notes_config"
 
@@ -163,10 +162,10 @@ if __name__ == "__main__":
     elif(args['--commit']):
         files_iteration(cfg_filepath, 'commit', "")
     elif(args['--add']):
-        for dir in args['ADD_DIRS']:
+        for dir in args['<ADD_DIRS>']:
             notes_add_dir(cfg_filepath, get_absolute_path(dir))
     elif(args['--delete']):
-        for dir in args['DEL_DIRS']:
+        for dir in args['<DEL_DIRS>']:
             notes_add_dir(cfg_filepath, get_absolute_path(dir)) 
     elif(args['--list']):
         files_iteration(cfg_filepath, 'list', "")
