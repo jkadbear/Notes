@@ -14,7 +14,7 @@ Usage:
 Options:
   -h --help     Show this screen
   -a --add      Add directories to be traced
-  -d --delete   Add directories to be traced
+  -d --delete   Delete directories to be traced
   -u --update   Update current files
   -p --push     Push current files being traced to remote repo
   -c --commit   Git commit current files being traced
